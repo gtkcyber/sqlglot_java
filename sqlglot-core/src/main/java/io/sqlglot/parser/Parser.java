@@ -831,7 +831,15 @@ public class Parser {
             return args;
         }
 
-        // Handle * (e.g., COUNT(*))
+        // Handle DISTINCT keyword (e.g., COUNT(DISTINCT col))
+        boolean distinct = false;
+        if (match(TokenType.DISTINCT)) {
+            distinct = true;
+            // Add a marker for DISTINCT
+            args.add(new Nodes.Identifier("DISTINCT"));
+        }
+
+        // Handle * (e.g., COUNT(*) or COUNT(DISTINCT *))
         if (match(TokenType.STAR)) {
             args.add(new Nodes.Identifier("*"));
             return args;
