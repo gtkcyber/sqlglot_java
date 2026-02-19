@@ -252,7 +252,7 @@ public class Parser {
     }
 
     /**
-     * Parses a table reference (with optional alias).
+     * Parses a table reference (with optional explicit or implicit alias).
      */
     private Expression parseTableReference() {
         Expression expr = parsePrimary();
@@ -260,9 +260,44 @@ public class Parser {
         if (match(TokenType.AS)) {
             String alias = parseAliasName();
             expr = new Nodes.Alias(expr, alias);
+        } else if (isImplicitAliasPosition()) {
+            // Check for implicit alias (identifier without AS keyword)
+            if (currentToken().type() == TokenType.IDENTIFIER) {
+                String alias = currentToken().text();
+                advance();
+                expr = new Nodes.Alias(expr, alias);
+            }
         }
 
         return expr;
+    }
+
+    /**
+     * Returns true if current position could have an implicit alias.
+     * Implicit aliases appear after table references and are followed by
+     * clause keywords, JOIN, EOF, COMMA, or closing paren.
+     */
+    private boolean isImplicitAliasPosition() {
+        // Check if next token (after potential identifier) is a clause terminator
+        if (currentToken().type() != TokenType.IDENTIFIER) {
+            return false;
+        }
+
+        // Look ahead to see what follows the identifier
+        Token next = peek();
+        TokenType nextType = next.type();
+
+        // These keywords/tokens indicate the identifier could be an implicit alias
+        return nextType == TokenType.FROM || nextType == TokenType.WHERE ||
+               nextType == TokenType.GROUP || nextType == TokenType.ORDER ||
+               nextType == TokenType.LIMIT || nextType == TokenType.OFFSET ||
+               nextType == TokenType.HAVING || nextType == TokenType.JOIN ||
+               nextType == TokenType.INNER || nextType == TokenType.LEFT ||
+               nextType == TokenType.RIGHT || nextType == TokenType.FULL ||
+               nextType == TokenType.CROSS || nextType == TokenType.COMMA ||
+               nextType == TokenType.R_PAREN || nextType == TokenType.EOF ||
+               nextType == TokenType.UNION || nextType == TokenType.INTERSECT ||
+               nextType == TokenType.EXCEPT;
     }
 
     /**
