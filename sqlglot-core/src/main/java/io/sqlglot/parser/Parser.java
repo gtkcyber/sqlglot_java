@@ -443,9 +443,10 @@ public class Parser {
                 expect(TokenType.R_PAREN);
                 expr = new Nodes.In(expr, values);
             } else if (match(TokenType.BETWEEN)) {
-                Expression low = parseExpression(0);
+                // Use precedence 3 to exclude AND (precedence 2) from being parsed as operator
+                Expression low = parseExpression(3);
                 expect(TokenType.AND);
-                Expression high = parseExpression(0);
+                Expression high = parseExpression(3);
                 expr = new Nodes.Between(expr, low, high);
             } else if (match(TokenType.DOT)) {
                 Expression right = parsePrimary();
@@ -568,10 +569,24 @@ public class Parser {
     }
 
     /**
-     * Parses a data type.
+     * Parses a data type (INT, VARCHAR, ARRAY<INT>, etc).
      */
     private Nodes.DataTypeExpr parseDataType() {
-        String type = expect(TokenType.IDENTIFIER).text();
+        // Accept both IDENTIFIER (custom types) and KEYWORD (built-in types like INT, VARCHAR)
+        Token typeToken = currentToken();
+        String type;
+
+        if (typeToken.type() == TokenType.IDENTIFIER) {
+            type = expect(TokenType.IDENTIFIER).text();
+        } else if (typeToken.type().isKeyword()) {
+            // Handle keywords used as type names (INT, VARCHAR, BIGINT, etc.)
+            type = typeToken.text();
+            advance();
+        } else {
+            error("Expected data type but got " + typeToken.type());
+            type = "UNKNOWN";
+        }
+
         List<Expression> params = new ArrayList<>();
 
         if (match(TokenType.L_PAREN)) {

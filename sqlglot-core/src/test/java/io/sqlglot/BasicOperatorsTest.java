@@ -25,7 +25,6 @@ package io.sqlglot;
 
 import io.sqlglot.expressions.Expression;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
 
 import java.util.Optional;
 
@@ -37,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class BasicOperatorsTest {
 
     @Test
-    @Disabled("BETWEEN operator parser needs fix")
     void testBetween() {
         String sql = "SELECT * FROM t WHERE x BETWEEN 1 AND 10";
         Optional<Expression> result = SqlGlot.parseOne(sql);
@@ -59,7 +57,6 @@ class BasicOperatorsTest {
     }
 
     @Test
-    @Disabled("CAST data type parsing needs fix")
     void testCast() {
         String sql = "SELECT CAST(a AS INT) FROM t";
         Optional<Expression> result = SqlGlot.parseOne(sql);
@@ -74,7 +71,6 @@ class BasicOperatorsTest {
     }
 
     @Test
-    @Disabled("BETWEEN operator parser needs fix")
     void testComplexWhere() {
         String sql = "SELECT * FROM t WHERE a > 1 AND b < 10 OR c BETWEEN 5 AND 15";
         Optional<Expression> result = SqlGlot.parseOne(sql);
