@@ -602,9 +602,43 @@ public class Parser {
                 // Use high precedence to avoid consuming operators in LIKE pattern
                 Expression pattern = parseExpression(7);
                 expr = new Nodes.Like(expr, pattern);
+            } else if (currentToken().type() == TokenType.NOT && peek().type() == TokenType.IN) {
+                // Handle NOT IN as a postfix operator
+                advance();  // consume NOT
+                expect(TokenType.IN);
+                expect(TokenType.L_PAREN);
+                List<Expression> values = new ArrayList<>();
+
+                // Check if this is a SELECT subquery or expression list
+                if (currentToken().type() == TokenType.SELECT) {
+                    // Parse as subquery
+                    Optional<Expression> subquery = parseSelect();
+                    if (subquery.isPresent()) {
+                        values.add(subquery.get());
+                    }
+                } else {
+                    // Parse as expression list
+                    values = parseExpressionList();
+                }
+
+                expect(TokenType.R_PAREN);
+                expr = new Nodes.Not(new Nodes.In(expr, values));
             } else if (match(TokenType.IN)) {
                 expect(TokenType.L_PAREN);
-                List<Expression> values = parseExpressionList();
+                List<Expression> values = new ArrayList<>();
+
+                // Check if this is a SELECT subquery or expression list
+                if (currentToken().type() == TokenType.SELECT) {
+                    // Parse as subquery
+                    Optional<Expression> subquery = parseSelect();
+                    if (subquery.isPresent()) {
+                        values.add(subquery.get());
+                    }
+                } else {
+                    // Parse as expression list
+                    values = parseExpressionList();
+                }
+
                 expect(TokenType.R_PAREN);
                 expr = new Nodes.In(expr, values);
             } else if (match(TokenType.BETWEEN)) {
@@ -902,10 +936,10 @@ public class Parser {
         return switch (token.type()) {
             case OR, XOR -> 1;
             case AND -> 2;
-            case NOT -> 3;
             case EQ, NEQ, NEQ2, LT, GT, LTE, GTE, LIKE, ILIKE, IN, BETWEEN, IS -> 4;
             case PLUS, MINUS -> 5;
             case STAR, SLASH, PERCENT, MOD -> 6;
+            case NOT -> -1;  // NOT is unary only, not binary
             default -> -1;
         };
     }
