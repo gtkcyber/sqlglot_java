@@ -166,8 +166,11 @@ public class Parser {
 
         Nodes.GroupBy groupBy = null;
         if (match(TokenType.GROUP)) {
-            // Keyword validation skipped
-            List<Expression> groupExpressions = parseExpressionList();
+            // Skip BY if present (not always tokenized separately)
+            if (currentToken().text().equalsIgnoreCase("BY")) {
+                advance();
+            }
+            List<Expression> groupExpressions = parseGroupByExpressions();
             groupBy = new Nodes.GroupBy(groupExpressions);
         }
 
@@ -612,6 +615,34 @@ public class Parser {
         }
 
         return expressions;
+    }
+
+    /**
+     * Parses GROUP BY expressions, stopping at HAVING, WHERE, ORDER BY, LIMIT, OFFSET, or EOF.
+     */
+    private List<Expression> parseGroupByExpressions() {
+        List<Expression> expressions = new ArrayList<>();
+
+        while (!isAtEnd() && !isGroupByTerminator()) {
+            expressions.add(parseExpression(0));
+
+            if (!match(TokenType.COMMA)) {
+                break;
+            }
+        }
+
+        return expressions;
+    }
+
+    /**
+     * Returns true if current token terminates a GROUP BY clause.
+     */
+    private boolean isGroupByTerminator() {
+        TokenType type = currentToken().type();
+        return type == TokenType.HAVING || type == TokenType.ORDER ||
+               type == TokenType.LIMIT || type == TokenType.OFFSET ||
+               type == TokenType.UNION || type == TokenType.INTERSECT ||
+               type == TokenType.EXCEPT;
     }
 
     /**
