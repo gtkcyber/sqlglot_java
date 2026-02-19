@@ -25,10 +25,10 @@ A comprehensive Java 17+ port of the [sqlglot](https://github.com/tobymao/sqlglo
 - Basic functions
 - ANSI SQL compliance
 
-**Phase 2 (Complete) - 98 Passing Tests:**
+**Phase 2-4B (Complete) - 128 Passing Tests:**
 - ✅ CTEs (Common Table Expressions / WITH clause)
 - ✅ Set operations (UNION, INTERSECT, EXCEPT)
-- ✅ Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
+- ✅ Aggregate functions (COUNT, SUM, AVG, MIN, MAX, with DISTINCT)
 - ✅ String functions (UPPER, LOWER, LENGTH, SUBSTR, TRIM, CONCAT)
 - ✅ Numeric functions (ABS, ROUND, CEIL, FLOOR, POWER, SQRT)
 - ✅ Function calls with multiple arguments
@@ -37,18 +37,20 @@ A comprehensive Java 17+ port of the [sqlglot](https://github.com/tobymao/sqlglo
 - ✅ DDL (CREATE, DROP, ALTER TABLE)
 - ✅ DISTINCT keyword
 - ✅ Iterative expression parsing (no recursion overflow)
-- ⏳ Window functions (blocked by alias support)
-- ⏳ Aliases (deferred to Phase 3)
-- ⏳ Subqueries in certain contexts (deferred to Phase 3)
+- ✅ Window functions (ROW_NUMBER, RANK, DENSE_RANK, etc.)
+- ✅ Column and table aliases (explicit and implicit)
+- ✅ Subqueries in all contexts (IN clause, scalar subqueries, derived tables)
+- ✅ Complex JOINs with ON conditions
+- ✅ NOT IN operator and set operations
 
 ### Supported Dialects
 
 - **ANSI** - Standard SQL
-- **DRILL** - Apache Drill ⭐ (Primary focus)
-- **PostgreSQL** - (Phase 2)
-- **MySQL** - (Phase 2)
-- **BigQuery** - (Phase 2)
-- **Snowflake** - (Phase 2)
+- **DRILL** - Apache Drill ⭐ (Primary focus - Phase 4B complete)
+- **PostgreSQL** - (Phase 4B complete)
+- **MySQL** - (Phase 4B complete)
+- **BigQuery** - (Phase 4B complete)
+- **Snowflake** - (Phase 4B complete)
 - _27 additional dialects planned for Phase 5_
 
 ## Quick Start
@@ -321,7 +323,7 @@ sqlglot-java/
 
 ## Testing
 
-**98 Passing Tests** across 17 test classes:
+**128 Passing Tests** across 22+ test classes (Phase 2-4B):
 
 ### Core Tests
 - **TokenizerTest** (5 tests) - Token recognition and SQL tokenization
@@ -346,11 +348,15 @@ sqlglot-java/
 - **DistinctTest** (2 tests) - DISTINCT keyword
 - **LimitOffsetTest** (4 tests) - LIMIT and OFFSET clauses
 
-### Advanced Features
+### Advanced Features (Phase 3-4B)
 - **FeatureDebugTest** (5 tests) - UNION, INTERSECT, EXCEPT, CTEs
+- **WindowFunctionTest** - Window functions (ROW_NUMBER, RANK, etc.)
+- **AliasTest** - Column and table aliases (explicit/implicit)
+- **SubqueryTest** - Subqueries in all contexts
+- **JoinTest** - Complex JOINs with ON conditions
 - **RoundTripTest** (4 tests, skipped) - Parse → Generate → Parse verification
 - **Phase2Test** (17 tests, skipped) - Additional advanced features
-- **DrillDialectTest** - Drill-specific functionality
+- **DrillDialectTest** (18 tests) - Drill-specific functionality
 
 ### Running Tests
 
@@ -386,20 +392,31 @@ mvn test jacoco:report
 - ✅ DDL statements (CREATE, DROP, ALTER TABLE)
 - ✅ HAVING with aggregate conditions
 - ✅ DISTINCT, LIMIT, OFFSET
-- 🔄 **Known Blockers** (Phase 3):
-  - Window functions (blocked by alias support)
-  - Aliases (column/table names)
-  - Some subquery contexts
 
-### 🚧 Phase 3 (In Progress)
-- Resolve heap overflow issues for aliases and subqueries
-- Window functions (ROW_NUMBER, RANK, etc.)
-- Apache Drill dialect enhancements ⭐
-- PostgreSQL, MySQL, BigQuery, Snowflake dialects
+### ✅ Phase 3 (Complete)
+- ✅ Resolved heap overflow issues for aliases and subqueries
+- ✅ Window functions (ROW_NUMBER, RANK, DENSE_RANK, etc.)
+- ✅ Apache Drill dialect enhancements ⭐
+- ✅ Support for implicit and explicit table aliases
+- ✅ Subqueries in all contexts (IN, scalar, derived tables)
 
-### 📋 Phase 4 (Planned)
+### ✅ Phase 4A (Complete) - Query Parsing Fixes
+- ✅ COUNT(DISTINCT col) parsing
+- ✅ Scalar subqueries and IN(SELECT) parsing
+- ✅ Implicit alias parsing without AS keyword
+
+### ✅ Phase 4B (Complete) - Dialect Implementation
+- ✅ PostgreSQL dialect
+- ✅ MySQL dialect
+- ✅ BigQuery dialect
+- ✅ Snowflake dialect
+- ✅ ServiceLoader-based dialect registry
+- **Total: 128 Passing Tests**
+
+### 📋 Phase 5 (Planned)
 - Query optimization (14 optimizer passes)
 - Scope analysis and name resolution
+- Remaining 27+ SQL dialects
 
 ### 📋 Phase 5 (Planned)
 - Remaining 27+ SQL dialects
@@ -456,27 +473,26 @@ mvn clean install -DskipTests
 - **Generation**: O(n) where n = AST nodes
 - **Memory**: Minimal; streaming tokens, tree-based AST
 
-## Known Limitations (Phase 2 End)
-
-### Parser Limitations
-- **Aliases**: Column and table aliases cause heap overflow
-  - Workaround: Avoid `SELECT a AS x` syntax currently
-  - Status: Deferred to Phase 3 for deeper parser refactoring
-- **Subqueries**: Some contexts (especially in WHERE IN clauses) overflow
-  - Status: Deferred to Phase 3
-- **Window Functions**: Depend on alias support
-  - Status: Blocked until Phase 3
+## Known Limitations (Post Phase 4B)
 
 ### Implementation Gaps
-- Limited optimization (Phase 4)
-- Some dialect-specific features not yet implemented
+- Query optimization (Phase 5 planned)
+- Some dialect-specific features not yet fully implemented
 - No concurrent parsing/generation (sequential only)
+- 27+ remaining SQL dialects not yet implemented
 
-### Phase 3 Goals
-- Resolve alias parsing without heap overflow
-- Enable subqueries in all contexts
-- Implement window functions
-- Add dialect-specific optimizations
+### Resolved Issues (Phase 3-4B)
+- ✅ Aliases (column and table names) - RESOLVED
+- ✅ Subqueries in all contexts - RESOLVED
+- ✅ Window functions - FULLY IMPLEMENTED
+- ✅ Dialect support (5 dialects implemented and registered)
+
+### Phase 5 Goals
+- Implement query optimization (14 optimizer passes)
+- Add scope analysis and name resolution
+- Implement remaining 27+ SQL dialects
+- Enhance dialect-specific features
+- Performance optimization and benchmarking
 
 ## Contributing
 
@@ -506,11 +522,13 @@ For issues, questions, or contributions related to Apache Drill support, please 
 ---
 
 **Last Updated**: 2026-02-19
-**Current Phase**: 2 Complete ✅ (98/98 tests passing)
-**Next Phase**: 3 (Alias/Subquery Resolution + Dialect Implementation)
+**Current Phase**: 4B Complete ✅ (128/128 tests passing)
+**Next Phase**: 5 (Optimizer Implementation + Remaining Dialects)
 
 ### Build Status
-- ✅ All 98 tests passing
+- ✅ All 128 tests passing (Phase 2-4B complete)
+- ✅ 5 SQL dialects fully implemented (Drill, PostgreSQL, MySQL, BigQuery, Snowflake)
 - ✅ Zero failures or errors
 - ✅ Clean compilation
-- ✅ Ready for Phase 3 work
+- ✅ ServiceLoader-based dialect registry operational
+- ✅ Ready for Phase 5 work (Optimizer + Additional Dialects)
