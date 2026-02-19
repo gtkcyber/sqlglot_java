@@ -181,8 +181,12 @@ public class Parser {
 
         List<Nodes.OrderBy> orderBy = new ArrayList<>();
         if (match(TokenType.ORDER)) {
-            // Keyword validation skipped
-            do {
+            // Skip optional BY keyword
+            if (currentToken().text().equalsIgnoreCase("BY")) {
+                advance();
+            }
+            // Parse ORDER BY expressions until LIMIT/OFFSET or end of SELECT
+            while (!isAtEnd() && !isOrderByTerminator()) {
                 Expression expr = parseExpression(0);
                 String direction = "ASC";
                 if (match(TokenType.ASC)) {
@@ -191,7 +195,10 @@ public class Parser {
                     direction = "DESC";
                 }
                 orderBy.add(new Nodes.OrderBy(expr, direction));
-            } while (match(TokenType.COMMA));
+                if (!match(TokenType.COMMA)) {
+                    break;
+                }
+            }
         }
 
         Nodes.Limit limit = null;
@@ -641,6 +648,16 @@ public class Parser {
         TokenType type = currentToken().type();
         return type == TokenType.HAVING || type == TokenType.ORDER ||
                type == TokenType.LIMIT || type == TokenType.OFFSET ||
+               type == TokenType.UNION || type == TokenType.INTERSECT ||
+               type == TokenType.EXCEPT;
+    }
+
+    /**
+     * Returns true if current token terminates an ORDER BY clause.
+     */
+    private boolean isOrderByTerminator() {
+        TokenType type = currentToken().type();
+        return type == TokenType.LIMIT || type == TokenType.OFFSET ||
                type == TokenType.UNION || type == TokenType.INTERSECT ||
                type == TokenType.EXCEPT;
     }
