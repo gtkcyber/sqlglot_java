@@ -720,7 +720,16 @@ public class Parser {
                 // Function call (keywords like COUNT, SUM can be function names)
                 List<Expression> args = parseFunctionArguments();
                 expect(TokenType.R_PAREN);
-                return new Nodes.Function(name, args);
+                Expression func = new Nodes.Function(name, args);
+
+                // Check for OVER clause (window functions)
+                if (match(TokenType.OVER)) {
+                    expect(TokenType.L_PAREN);
+                    func = parseWindowSpec(func);
+                    expect(TokenType.R_PAREN);
+                }
+
+                return func;
             }
 
             // For keywords, treat as identifier (e.g., COUNT without parens)
@@ -729,6 +738,41 @@ public class Parser {
 
         error("Unexpected token: " + current.type());
         return Nodes.Null.INSTANCE;
+    }
+
+    /**
+     * Parses a window specification (PARTITION BY ... ORDER BY ...).
+     */
+    private Expression parseWindowSpec(Expression func) {
+        Nodes.PartitionBy partitionBy = null;
+        Nodes.OrderBy orderBy = null;
+
+        if (match(TokenType.PARTITION)) {
+            if (currentToken().text().equalsIgnoreCase("BY")) {
+                advance();
+            }
+            List<Expression> partitionExprs = new ArrayList<>();
+            do {
+                partitionExprs.add(parseExpression(0));
+            } while (match(TokenType.COMMA));
+            partitionBy = new Nodes.PartitionBy(partitionExprs);
+        }
+
+        if (match(TokenType.ORDER)) {
+            if (currentToken().text().equalsIgnoreCase("BY")) {
+                advance();
+            }
+            Expression orderExpr = parseExpression(0);
+            String direction = "ASC";
+            if (match(TokenType.ASC)) {
+                direction = "ASC";
+            } else if (match(TokenType.DESC)) {
+                direction = "DESC";
+            }
+            orderBy = new Nodes.OrderBy(orderExpr, direction);
+        }
+
+        return new Nodes.Window(func, partitionBy, orderBy);
     }
 
     /**
