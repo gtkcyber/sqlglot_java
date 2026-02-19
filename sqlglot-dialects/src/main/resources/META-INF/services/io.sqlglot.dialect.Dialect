@@ -1,0 +1,5 @@
+io.sqlglot.dialects.drill.DrillDialect
+io.sqlglot.dialects.postgres.PostgreSQLDialect
+io.sqlglot.dialects.mysql.MySQLDialect
+io.sqlglot.dialects.bigquery.BigQueryDialect
+io.sqlglot.dialects.snowflake.SnowflakeDialect
