@@ -58,4 +58,5 @@ class FeatureDebugTest {
         assertTrue(generated.contains("UNION") || generated.contains("Union") || generated.contains("union"),
                 "Generated SQL should contain UNION: " + generated);
     }
+
 }
