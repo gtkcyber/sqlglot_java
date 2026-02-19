@@ -424,36 +424,84 @@ public class Parser {
     }
 
     /**
-     * Parses an expression with operator precedence.
+     * Parses an expression with operator precedence climbing (iterative, no recursion).
+     * Uses explicit stacks instead of recursive calls to avoid stack overflow on deeply nested expressions.
      */
     private Expression parseExpression(int minPrec) {
-        Expression left = parseUnary();
+        // Stacks for operands and operators
+        Stack<Expression> values = new Stack<>();
+        Stack<Integer> precedences = new Stack<>();
+        Stack<TokenType> operators = new Stack<>();
 
+        // Parse first operand
+        values.push(parseUnary());
+
+        // Main loop - iterative operator processing
         while (!isAtEnd() && getPrecedence(currentToken()) >= minPrec) {
-            TokenType op = currentToken().type();
-            int prec = getPrecedence(currentToken());
+            int currPrec = getPrecedence(currentToken());
+            TokenType currOp = currentToken().type();
             advance();
 
-            Expression right = parseExpression(prec + 1);
-            left = createBinaryOp(op, left, right);
+            // Reduce operators with >= precedence (left-associativity)
+            while (!precedences.isEmpty() && precedences.peek() >= currPrec) {
+                Expression right = values.pop();
+                Expression left = values.pop();
+                TokenType op = operators.pop();
+                precedences.pop();
+                values.push(createBinaryOp(op, left, right));
+            }
+
+            // Push next operand
+            values.push(parseUnary());
+
+            // Push current operator and its precedence
+            operators.push(currOp);
+            precedences.push(currPrec);
         }
 
-        return left;
+        // Final reductions - process remaining operators in stack
+        while (!precedences.isEmpty()) {
+            Expression right = values.pop();
+            Expression left = values.pop();
+            TokenType op = operators.pop();
+            precedences.pop();
+            values.push(createBinaryOp(op, left, right));
+        }
+
+        return values.pop();
     }
 
     /**
-     * Parses a unary expression.
+     * Parses a unary expression (iterative for unary operators to avoid deep recursion).
      */
     private Expression parseUnary() {
-        if (match(TokenType.NOT)) {
-            return new Nodes.Not(parseUnary());
+        // Collect unary operators in order (iterative instead of recursive)
+        Stack<TokenType> unaryOps = new Stack<>();
+        while (!isAtEnd()) {
+            TokenType type = currentToken().type();
+            if (type == TokenType.NOT) {
+                unaryOps.push(TokenType.NOT);
+                advance();
+            } else if (type == TokenType.MINUS) {
+                unaryOps.push(TokenType.MINUS);
+                advance();
+            } else {
+                break;
+            }
         }
 
-        if (match(TokenType.MINUS)) {
-            return new Nodes.Sub(new Nodes.Literal("0", false), parseUnary());
-        }
-
+        // Parse primary expression
         Expression expr = parsePrimary();
+
+        // Apply unary operators in reverse order (they were collected in forward order)
+        while (!unaryOps.isEmpty()) {
+            TokenType op = unaryOps.pop();
+            if (op == TokenType.NOT) {
+                expr = new Nodes.Not(expr);
+            } else if (op == TokenType.MINUS) {
+                expr = new Nodes.Sub(new Nodes.Literal("0", false), expr);
+            }
+        }
 
         // Postfix operators
         while (true) {
@@ -575,18 +623,19 @@ public class Parser {
             return new Nodes.Case(expr, whens, defaultExpr);
         }
 
-        // Identifier or function
-        if (current.type() == TokenType.IDENTIFIER) {
+        // Identifier or function (allow keywords as function names)
+        if (current.type() == TokenType.IDENTIFIER || current.type().isKeyword()) {
             String name = current.text();
             advance();
 
             if (match(TokenType.L_PAREN)) {
-                // Function call
+                // Function call (keywords like COUNT, SUM can be function names)
                 List<Expression> args = parseFunctionArguments();
                 expect(TokenType.R_PAREN);
                 return new Nodes.Function(name, args);
             }
 
+            // For keywords, treat as identifier (e.g., COUNT without parens)
             return new Nodes.Identifier(name);
         }
 
