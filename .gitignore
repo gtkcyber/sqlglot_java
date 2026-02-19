@@ -1,0 +1,35 @@
+# Please keep this list sorted.
+*~
+.buildpath
+.checkstyle
+.classpath
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+contrib/native/client/build/
+contrib/native/client/build/*
+ # binary dist license is by the build
+distribution/src/main/resources/LICENSE
+*.DS_Store
+exec/jdbc-all/dependency-reduced-pom.xml
+.factorypath
+git.properties
+.*.html
+.idea/
+*.iml
+install_manifest.txt
+*.lck
+*.log
+Makefile
+.*.md.html
+.mvn/maven.config
+*.patch
+.project
+.settings/
+*.swp
+TAGS
+target/
+# TODO - DRILL-4336
+tools/venv/
+venv/
+.vscode/*
