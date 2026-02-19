@@ -253,6 +253,20 @@ public class Parser {
     }
 
     /**
+     * Extracts table name from an expression (Identifier -> Table).
+     */
+    private Nodes.Table getTableFromExpression(Expression expr) {
+        if (expr instanceof Nodes.Table t) {
+            return t;
+        } else if (expr instanceof Nodes.Identifier id) {
+            return new Nodes.Table(id.getName());
+        } else {
+            error("Expected table name, got: " + expr.getClass().getSimpleName());
+            return new Nodes.Table("unknown");
+        }
+    }
+
+    /**
      * Parses a JOIN clause.
      */
     private Nodes.Join parseJoin() {
@@ -288,7 +302,8 @@ public class Parser {
         expect(TokenType.INSERT);
         expect(TokenType.INTO);
 
-        Nodes.Table table = (Nodes.Table) parsePrimary();
+        Expression tableExpr = parsePrimary();
+        Nodes.Table table = getTableFromExpression(tableExpr);
 
         List<Expression> columns = new ArrayList<>();
         if (match(TokenType.L_PAREN)) {
@@ -311,7 +326,8 @@ public class Parser {
      */
     private Optional<Expression> parseUpdate() {
         expect(TokenType.UPDATE);
-        Nodes.Table table = (Nodes.Table) parsePrimary();
+        Expression tableExpr = parsePrimary();
+        Nodes.Table table = getTableFromExpression(tableExpr);
 
         expect(TokenType.SET);
         Map<Expression, Expression> set = new LinkedHashMap<>();
@@ -336,7 +352,8 @@ public class Parser {
     private Optional<Expression> parseDelete() {
         expect(TokenType.DELETE);
         expect(TokenType.FROM);
-        Nodes.Table table = (Nodes.Table) parsePrimary();
+        Expression tableExpr = parsePrimary();
+        Nodes.Table table = getTableFromExpression(tableExpr);
 
         Expression where = null;
         if (match(TokenType.WHERE)) {
