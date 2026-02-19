@@ -24,6 +24,7 @@
 package io.sqlglot;
 
 import io.sqlglot.expressions.Expression;
+import io.sqlglot.expressions.Nodes;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -57,6 +58,36 @@ class FeatureDebugTest {
         // Should contain UNION keyword
         assertTrue(generated.contains("UNION") || generated.contains("Union") || generated.contains("union"),
                 "Generated SQL should contain UNION: " + generated);
+    }
+
+    @Test
+    void testSimpleCTE() {
+        String sql = "WITH cte AS (SELECT a FROM t) SELECT * FROM cte";
+        Optional<Expression> result = SqlGlot.parseOne(sql);
+        assertTrue(result.isPresent(), "Failed to parse simple CTE");
+        assertTrue(result.get() instanceof Nodes.With, "Result should be With node");
+    }
+
+    @Test
+    void testMultipleCTEs() {
+        String sql = "WITH cte1 AS (SELECT a FROM t1), cte2 AS (SELECT b FROM t2) SELECT * FROM cte1";
+        Optional<Expression> result = SqlGlot.parseOne(sql);
+        assertTrue(result.isPresent(), "Failed to parse multiple CTEs");
+    }
+
+    @Test
+    void testCTEGeneration() {
+        String originalSql = "WITH cte AS (SELECT a FROM t) SELECT * FROM cte";
+        Optional<Expression> parsed = SqlGlot.parseOne(originalSql);
+        assertTrue(parsed.isPresent(), "Failed to parse CTE");
+
+        String generated = SqlGlot.generate(parsed.get());
+        System.out.println("Original SQL: " + originalSql);
+        System.out.println("Generated SQL: " + generated);
+
+        // Should contain WITH keyword
+        assertTrue(generated.contains("WITH") || generated.contains("with"),
+                "Generated SQL should contain WITH: " + generated);
     }
 
 }
