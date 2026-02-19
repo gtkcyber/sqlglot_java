@@ -99,6 +99,7 @@ class GeneratorTest {
     void testSelectWithFrom() {
         Nodes.Select expr = new Nodes.Select(
             List.of(Nodes.Star.INSTANCE),
+            false,
             new Nodes.From(new Nodes.Identifier("myTable")),
             null,
             null,

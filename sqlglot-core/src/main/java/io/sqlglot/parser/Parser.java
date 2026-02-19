@@ -146,6 +146,8 @@ public class Parser {
 
         expect(TokenType.SELECT);
 
+        boolean distinct = match(TokenType.DISTINCT);
+
         List<Expression> expressions = parseSelectExpressions();
         Nodes.From from = null;
         if (match(TokenType.FROM)) {
@@ -199,7 +201,7 @@ public class Parser {
             offset = new Nodes.Offset(parsePrimary());
         }
 
-        return Optional.of(new Nodes.Select(expressions, from, joins, where, groupBy, having, orderBy, limit, offset));
+        return Optional.of(new Nodes.Select(expressions, distinct, from, joins, where, groupBy, having, orderBy, limit, offset));
     }
 
     /**

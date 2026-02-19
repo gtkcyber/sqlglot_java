@@ -315,6 +315,9 @@ public class Generator implements ExpressionVisitor<String> {
         StringBuilder sb = new StringBuilder();
 
         sb.append(formatKeyword("SELECT")).append(" ");
+        if (node.isDistinct()) {
+            sb.append(formatKeyword("DISTINCT")).append(" ");
+        }
 
         String expressions = node.getExpressions().stream()
             .map(this::sql)

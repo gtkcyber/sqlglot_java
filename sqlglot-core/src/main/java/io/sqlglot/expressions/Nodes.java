@@ -999,6 +999,7 @@ public final class Nodes {
 
     public static final class Select extends Expression {
         private final List<Expression> expressions;
+        private final boolean distinct;
         private final From from;
         private final List<Join> joins;
         private final Where where;
@@ -1009,12 +1010,13 @@ public final class Nodes {
         private final Offset offset;
 
         public Select(List<Expression> expressions) {
-            this(expressions, null, null, null, null, null, null, null, null);
+            this(expressions, false, null, null, null, null, null, null, null, null);
         }
 
-        public Select(List<Expression> expressions, From from, List<Join> joins, Where where,
+        public Select(List<Expression> expressions, boolean distinct, From from, List<Join> joins, Where where,
                       GroupBy groupBy, Having having, List<OrderBy> orderBy, Limit limit, Offset offset) {
             this.expressions = Objects.requireNonNull(expressions);
+            this.distinct = distinct;
             this.from = from;
             this.joins = joins != null ? joins : List.of();
             this.where = where;
@@ -1026,6 +1028,7 @@ public final class Nodes {
         }
 
         public List<Expression> getExpressions() { return expressions; }
+        public boolean isDistinct() { return distinct; }
         public From getFrom() { return from; }
         public List<Join> getJoins() { return joins; }
         public Where getWhere() { return where; }
@@ -1039,6 +1042,7 @@ public final class Nodes {
         public Map<String, Object> args() {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("expressions", expressions);
+            map.put("distinct", distinct);
             map.put("from", from);
             map.put("joins", joins);
             map.put("where", where);
@@ -1059,6 +1063,7 @@ public final class Nodes {
         protected Expression copyWithArgs(Map<String, Object> newArgs) {
             return new Select(
                 (List<Expression>) newArgs.get("expressions"),
+                (boolean) newArgs.getOrDefault("distinct", distinct),
                 (From) newArgs.get("from"),
                 (List<Join>) newArgs.get("joins"),
                 (Where) newArgs.get("where"),
@@ -1071,7 +1076,7 @@ public final class Nodes {
         }
 
         @Override
-        public String toString() { return "SELECT " + expressions; }
+        public String toString() { return "SELECT " + (distinct ? "DISTINCT " : "") + expressions; }
     }
 
     public static final class From extends Expression {
