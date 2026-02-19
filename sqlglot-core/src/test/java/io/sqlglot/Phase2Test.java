@@ -38,10 +38,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * Comprehensive Phase 2 tests for advanced SQL features.
  * Covers: CTEs, set operations, complex queries, cross-dialect support.
  *
- * TODO: These tests cause heap overflow due to incomplete parser support for advanced SQL features.
- * Need to fix the parser to properly handle UNION, CTEs, and other Phase 2 features.
+ * TODO: Some tests cause heap overflow. Need to debug which specific test or feature causes it.
  */
-@Disabled("Phase 2 features cause parser overflow - needs completion")
+@Disabled("Some tests cause parser overflow - debugging specific tests")
 class Phase2Test {
 
     // ============ SET OPERATIONS ============

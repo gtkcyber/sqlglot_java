@@ -133,6 +133,7 @@ public enum TokenType {
     INDEX(Category.KEYWORD, "INDEX"),
     INNER(Category.KEYWORD, "INNER"),
     INSERT(Category.KEYWORD, "INSERT"),
+    INTERSECT(Category.KEYWORD, "INTERSECT"),
     INT(Category.KEYWORD, "INT"),
     INTEGER(Category.KEYWORD, "INTEGER"),
     INTO(Category.KEYWORD, "INTO"),

@@ -72,15 +72,16 @@
                     <version>4.3</version>
                     <configuration>
                         <header>${project.parent.basedir}/LICENSE</header>
-                        <includes>
-                            <include>src/**/*.java</include>
-                        </includes>
-                        <excludes>
-                            <exclude>src/**/TestSimple.java</exclude>
-                        </excludes>
                         <mapping>
                             <java>SLASHSTAR_STYLE</java>
                         </mapping>
+                        <licenseSets>
+                            <licenseSet>
+                                <excludes>
+                                    <exclude>**/TestSimple.java</exclude>
+                                </excludes>
+                            </licenseSet>
+                        </licenseSets>
                     </configuration>
                     <executions>
                         <execution>

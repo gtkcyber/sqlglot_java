@@ -103,9 +103,47 @@ public class Parser {
     }
 
     /**
-     * Parses a SELECT statement.
+     * Parses a SELECT statement with optional set operations (UNION, INTERSECT, EXCEPT).
      */
     private Optional<Expression> parseSelect() {
+        Expression select = parseBasicSelect().orElse(null);
+        if (select == null) {
+            return Optional.empty();
+        }
+
+        // Handle set operations: UNION, INTERSECT, EXCEPT
+        while (!isAtEnd() && (currentToken().type() == TokenType.UNION ||
+                              currentToken().type() == TokenType.INTERSECT ||
+                              currentToken().type() == TokenType.EXCEPT)) {
+            TokenType op = currentToken().type();
+            advance();
+
+            boolean all = match(TokenType.ALL);
+            Expression right = parseBasicSelect().orElse(null);
+            if (right == null) {
+                error("Expected SELECT after " + op);
+                break;
+            }
+
+            select = switch (op) {
+                case UNION -> new Nodes.Union((Nodes.Select) select, (Nodes.Select) right, !all);
+                case INTERSECT -> new Nodes.Intersect((Nodes.Select) select, (Nodes.Select) right);
+                case EXCEPT -> new Nodes.Except((Nodes.Select) select, (Nodes.Select) right);
+                default -> select;
+            };
+        }
+
+        return Optional.of(select);
+    }
+
+    /**
+     * Parses a basic SELECT statement (without set operations).
+     */
+    private Optional<Expression> parseBasicSelect() {
+        if (currentToken().type() != TokenType.SELECT) {
+            return Optional.empty();
+        }
+
         expect(TokenType.SELECT);
 
         List<Expression> expressions = parseSelectExpressions();
