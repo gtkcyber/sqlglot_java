@@ -582,10 +582,7 @@ public class Parser {
 
             if (match(TokenType.L_PAREN)) {
                 // Function call
-                List<Expression> args = new ArrayList<>();
-                if (currentToken().type() != TokenType.R_PAREN) {
-                    args = parseExpressionList();
-                }
+                List<Expression> args = parseFunctionArguments();
                 expect(TokenType.R_PAREN);
                 return new Nodes.Function(name, args);
             }
@@ -619,7 +616,7 @@ public class Parser {
         List<Expression> params = new ArrayList<>();
 
         if (match(TokenType.L_PAREN)) {
-            params = parseExpressionList();
+            params = parseFunctionArguments();
             expect(TokenType.R_PAREN);
         }
 
@@ -639,6 +636,36 @@ public class Parser {
         }
 
         return expressions;
+    }
+
+    /**
+     * Parses function arguments with explicit R_PAREN termination.
+     * Handles special cases like COUNT(*) and prevents infinite recursion.
+     */
+    private List<Expression> parseFunctionArguments() {
+        List<Expression> args = new ArrayList<>();
+
+        // Empty argument list (e.g., COUNT())
+        if (currentToken().type() == TokenType.R_PAREN) {
+            return args;
+        }
+
+        // Handle * (e.g., COUNT(*))
+        if (match(TokenType.STAR)) {
+            args.add(new Nodes.Identifier("*"));
+            return args;
+        }
+
+        // Parse comma-separated arguments, stopping at R_PAREN
+        do {
+            // Safety check: if we see R_PAREN, stop parsing
+            if (currentToken().type() == TokenType.R_PAREN) {
+                break;
+            }
+            args.add(parseExpression(0));
+        } while (match(TokenType.COMMA) && currentToken().type() != TokenType.R_PAREN);
+
+        return args;
     }
 
     /**
