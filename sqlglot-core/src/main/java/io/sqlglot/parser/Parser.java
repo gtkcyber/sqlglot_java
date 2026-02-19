@@ -36,6 +36,8 @@ public class Parser {
     private List<Token> tokens;
     private int pos;
     private final List<ParseError> errors = new ArrayList<>();
+    private int parseDepth = 0;  // Track recursion depth
+    private static final int MAX_PARSE_DEPTH = 100;
 
     public Parser() {
         this(ParserConfig.defaultConfig());
@@ -106,34 +108,45 @@ public class Parser {
      * Parses a SELECT statement with optional set operations (UNION, INTERSECT, EXCEPT).
      */
     private Optional<Expression> parseSelect() {
-        Expression select = parseBasicSelect().orElse(null);
-        if (select == null) {
+        parseDepth++;
+        if (parseDepth > MAX_PARSE_DEPTH) {
+            error("Maximum parse depth exceeded: " + parseDepth);
+            parseDepth--;
             return Optional.empty();
         }
 
-        // Handle set operations: UNION, INTERSECT, EXCEPT
-        while (!isAtEnd() && (currentToken().type() == TokenType.UNION ||
-                              currentToken().type() == TokenType.INTERSECT ||
-                              currentToken().type() == TokenType.EXCEPT)) {
-            TokenType op = currentToken().type();
-            advance();
-
-            boolean all = match(TokenType.ALL);
-            Expression right = parseBasicSelect().orElse(null);
-            if (right == null) {
-                error("Expected SELECT after " + op);
-                break;
+        try {
+            Expression select = parseBasicSelect().orElse(null);
+            if (select == null) {
+                return Optional.empty();
             }
 
-            select = switch (op) {
-                case UNION -> new Nodes.Union((Nodes.Select) select, (Nodes.Select) right, !all);
-                case INTERSECT -> new Nodes.Intersect((Nodes.Select) select, (Nodes.Select) right);
-                case EXCEPT -> new Nodes.Except((Nodes.Select) select, (Nodes.Select) right);
-                default -> select;
-            };
-        }
+            // Handle set operations: UNION, INTERSECT, EXCEPT
+            while (!isAtEnd() && (currentToken().type() == TokenType.UNION ||
+                                  currentToken().type() == TokenType.INTERSECT ||
+                                  currentToken().type() == TokenType.EXCEPT)) {
+                TokenType op = currentToken().type();
+                advance();
 
-        return Optional.of(select);
+                boolean all = match(TokenType.ALL);
+                Expression right = parseBasicSelect().orElse(null);
+                if (right == null) {
+                    error("Expected SELECT after " + op);
+                    break;
+                }
+
+                select = switch (op) {
+                    case UNION -> new Nodes.Union((Nodes.Select) select, (Nodes.Select) right, !all);
+                    case INTERSECT -> new Nodes.Intersect((Nodes.Select) select, (Nodes.Select) right);
+                    case EXCEPT -> new Nodes.Except((Nodes.Select) select, (Nodes.Select) right);
+                    default -> select;
+                };
+            }
+
+            return Optional.of(select);
+        } finally {
+            parseDepth--;
+        }
     }
 
     /**
@@ -227,7 +240,7 @@ public class Parser {
                 Expression expr = parseExpression(0);
 
                 if (match(TokenType.AS)) {
-                    String alias = expect(TokenType.IDENTIFIER).text();
+                    String alias = parseAliasName();
                     expr = new Nodes.Alias(expr, alias);
                 }
 
@@ -245,11 +258,27 @@ public class Parser {
         Expression expr = parsePrimary();
 
         if (match(TokenType.AS)) {
-            String alias = expect(TokenType.IDENTIFIER).text();
+            String alias = parseAliasName();
             expr = new Nodes.Alias(expr, alias);
         }
 
         return expr;
+    }
+
+    /**
+     * Parses an alias name (accepts both IDENTIFIER and keywords).
+     */
+    private String parseAliasName() {
+        if (currentToken().type() == TokenType.IDENTIFIER) {
+            return expect(TokenType.IDENTIFIER).text();
+        } else if (currentToken().type().isKeyword()) {
+            Token kw = currentToken();
+            advance();
+            return kw.text();
+        } else {
+            error("Expected identifier or keyword for alias");
+            return "unknown";
+        }
     }
 
     /**
@@ -280,10 +309,66 @@ public class Parser {
         Expression on = null;
 
         if (match(TokenType.ON)) {
-            on = parseExpression(0);
+            on = parseOnCondition();
         }
 
         return new Nodes.Join(joinType, table, on);
+    }
+
+    /**
+     * Parses an ON condition with proper termination.
+     */
+    private Expression parseOnCondition() {
+        Stack<Expression> values = new Stack<>();
+        Stack<Integer> precedences = new Stack<>();
+        Stack<TokenType> operators = new Stack<>();
+
+        values.push(parseUnary());
+
+        while (!isAtEnd() && !isJoinTerminator() && getPrecedence(currentToken()) >= 0) {
+            int currPrec = getPrecedence(currentToken());
+            TokenType currOp = currentToken().type();
+            advance();
+
+            // Reduce operators with >= precedence (left-associativity)
+            while (!precedences.isEmpty() && precedences.peek() >= currPrec) {
+                Expression right = values.pop();
+                Expression left = values.pop();
+                TokenType op = operators.pop();
+                precedences.pop();
+                values.push(createBinaryOp(op, left, right));
+            }
+
+            values.push(parseUnary());
+            operators.push(currOp);
+            precedences.push(currPrec);
+        }
+
+        // Final reductions
+        while (!precedences.isEmpty()) {
+            Expression right = values.pop();
+            Expression left = values.pop();
+            TokenType op = operators.pop();
+            precedences.pop();
+            values.push(createBinaryOp(op, left, right));
+        }
+
+        return values.pop();
+    }
+
+    /**
+     * Returns true if current token terminates a JOIN ON clause.
+     */
+    private boolean isJoinTerminator() {
+        TokenType type = currentToken().type();
+        return type == TokenType.WHERE || type == TokenType.GROUP ||
+               type == TokenType.HAVING || type == TokenType.ORDER ||
+               type == TokenType.LIMIT || type == TokenType.OFFSET ||
+               type == TokenType.UNION || type == TokenType.INTERSECT ||
+               type == TokenType.EXCEPT || type == TokenType.INNER ||
+               type == TokenType.LEFT || type == TokenType.RIGHT ||
+               type == TokenType.FULL || type == TokenType.CROSS ||
+               type == TokenType.SEMICOLON || type == TokenType.EOF;
     }
 
     /**
@@ -291,8 +376,9 @@ public class Parser {
      */
     private boolean matchJoin() {
         TokenType type = currentToken().type();
-        return type == TokenType.INNER || type == TokenType.LEFT || type == TokenType.RIGHT ||
-               type == TokenType.FULL || type == TokenType.CROSS || type == TokenType.OUTER;
+        return type == TokenType.JOIN || type == TokenType.INNER || type == TokenType.LEFT ||
+               type == TokenType.RIGHT || type == TokenType.FULL || type == TokenType.CROSS ||
+               type == TokenType.OUTER;
     }
 
     /**
@@ -577,7 +663,7 @@ public class Parser {
 
         // Parenthesized expression or subquery
         if (match(TokenType.L_PAREN)) {
-            if (peek().type() == TokenType.SELECT) {
+            if (currentToken().type() == TokenType.SELECT) {
                 Optional<Expression> select = parseSelect();
                 expect(TokenType.R_PAREN);
                 if (select.isPresent() && select.get() instanceof Nodes.Select s) {
