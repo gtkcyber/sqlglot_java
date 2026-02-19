@@ -503,7 +503,7 @@ public class Parser {
             }
         }
 
-        // Postfix operators
+        // Postfix operators (iterative to avoid recursion)
         while (true) {
             if (match(TokenType.IS)) {
                 if (match(TokenType.NULL)) {
@@ -513,7 +513,9 @@ public class Parser {
                     expr = new Nodes.IsNotNull(expr);
                 }
             } else if (match(TokenType.LIKE)) {
-                expr = new Nodes.Like(expr, parseUnary());
+                // Use high precedence to avoid consuming operators in LIKE pattern
+                Expression pattern = parseExpression(7);
+                expr = new Nodes.Like(expr, pattern);
             } else if (match(TokenType.IN)) {
                 expect(TokenType.L_PAREN);
                 List<Expression> values = parseExpressionList();
