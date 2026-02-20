@@ -76,7 +76,7 @@ class EliminateCTEsRuleTest {
                 """;
         String result = optimize(sql);
         assertTrue(result.toUpperCase().contains("WITH"), "Used CTE should remain");
-        assertTrue(result.toUpperCase().contains("used"), "used CTE should be present");
+        assertTrue(result.toUpperCase().contains("USED"), "used CTE should be present");
     }
 
     @Test
@@ -159,8 +159,8 @@ class EliminateCTEsRuleTest {
                 WHERE au.id > 100
                 """;
         String result = optimize(sql);
-        assertTrue(result.toUpperCase().contains("active_users"), "Used CTE should remain");
-        assertFalse(result.toUpperCase().contains("unused_data"), "Unused CTE should be removed");
+        assertTrue(result.toUpperCase().contains("ACTIVE_USERS"), "Used CTE should remain");
+        assertFalse(result.toUpperCase().contains("UNUSED_DATA"), "Unused CTE should be removed");
     }
 
     @Test
@@ -188,7 +188,7 @@ class EliminateCTEsRuleTest {
                 SELECT * FROM cte1, cte2
                 """;
         String result = optimize(sql);
-        assertTrue(result.toUpperCase().contains("cte1"), "cte1 should be retained");
-        assertTrue(result.toUpperCase().contains("cte2"), "cte2 should be retained");
+        assertTrue(result.toUpperCase().contains("CTE1"), "cte1 should be retained");
+        assertTrue(result.toUpperCase().contains("CTE2"), "cte2 should be retained");
     }
 }
