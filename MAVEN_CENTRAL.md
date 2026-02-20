@@ -2,6 +2,20 @@
 
 This guide explains how to publish SQLGlot Java to Maven Central Repository.
 
+## Quick Start
+
+**For regular development:**
+```bash
+mvn clean install  # or mvn clean test
+# No GPG required - build works as-is
+```
+
+**For Maven Central deployment:**
+```bash
+mvn clean deploy -P ossrh  # Activates GPG signing and OSSRH deployment
+# Requires GPG keys to be set up (see Prerequisites below)
+```
+
 ## Prerequisites
 
 1. **JIRA Account**: Create an account at https://issues.sonatype.org/
@@ -99,15 +113,17 @@ Create/edit `~/.m2/settings.xml`:
 
 ## Step 4: Deploy to Maven Central
 
+**Important:** GPG signing is only required when deploying to Maven Central. Regular builds (test, install) do NOT require GPG.
+
 ### Build and Sign Artifacts
 
+To deploy to Maven Central, activate the `ossrh` profile which enables GPG signing:
+
 ```bash
+# With passphrase on command line (not recommended for security)
 mvn clean deploy -P ossrh -Dgpg.passphrase=YOUR_GPG_PASSPHRASE
-```
 
-Or use Maven to prompt for GPG passphrase:
-
-```bash
+# Better: Maven will prompt for GPG passphrase interactively
 mvn clean deploy -P ossrh
 ```
 
@@ -117,8 +133,23 @@ This will:
 3. Generate JAR files
 4. Generate Javadoc JARs
 5. Generate source JARs
-6. Sign all artifacts with GPG
+6. Sign all artifacts with GPG (only when using `-P ossrh` profile)
 7. Deploy to OSSRH staging repository
+
+### Regular Builds (Without Deployment)
+
+For regular development builds, GPG is NOT required:
+
+```bash
+# Regular build and test (no GPG needed)
+mvn clean install
+
+# Run tests only (no GPG needed)
+mvn clean test
+
+# Package only (no GPG needed)
+mvn clean package
+```
 
 ### Verify Deployment
 
