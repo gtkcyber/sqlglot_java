@@ -3,3 +3,13 @@ com.gtkcyber.sqlglot.dialects.postgres.PostgreSQLDialect
 com.gtkcyber.sqlglot.dialects.mysql.MySQLDialect
 com.gtkcyber.sqlglot.dialects.bigquery.BigQueryDialect
 com.gtkcyber.sqlglot.dialects.snowflake.SnowflakeDialect
+com.gtkcyber.sqlglot.dialects.sqlite.SqliteDialect
+com.gtkcyber.sqlglot.dialects.mssql.MssqlDialect
+com.gtkcyber.sqlglot.dialects.oracle.OracleDialect
+com.gtkcyber.sqlglot.dialects.duckdb.DuckdbDialect
+com.gtkcyber.sqlglot.dialects.spark.SparkDialect
+com.gtkcyber.sqlglot.dialects.clickhouse.ClickhouseDialect
+com.gtkcyber.sqlglot.dialects.redshift.RedshiftDialect
+com.gtkcyber.sqlglot.dialects.presto.PrestoDialect
+com.gtkcyber.sqlglot.dialects.hive.HiveDialect
+com.gtkcyber.sqlglot.dialects.mariadb.MariadbDialect
