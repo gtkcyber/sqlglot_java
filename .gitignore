@@ -13,6 +13,7 @@ distribution/src/main/resources/LICENSE
 *.DS_Store
 exec/jdbc-all/dependency-reduced-pom.xml
 .factorypath
+.flattened-pom.xml
 git.properties
 .*.html
 .idea/

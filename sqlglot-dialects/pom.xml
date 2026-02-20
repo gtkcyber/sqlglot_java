@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.gtkcyber.sqlglot</groupId>
         <artifactId>sqlglot-java</artifactId>
-        <version>1.0.0</version>
+        <version>${revision}</version>
         <relativePath>..</relativePath>
     </parent>
 
