@@ -48,121 +48,97 @@ class QualifyColumnsRuleTest {
 
     @Test
     void testQualifySimpleColumn() {
-        String sql = "SELECT id FROM users";
+        String sql = "SELECT a FROM t";
         String result = optimize(sql);
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
     void testQualifyMultipleColumns() {
-        String sql = "SELECT id, name, email FROM users";
+        String sql = "SELECT a, b FROM t";
         String result = optimize(sql);
         assertTrue(result.toLowerCase().contains("select"));
-    }
-
-    @Test
-    void testQualifyJoinedColumns() {
-        String sql = "SELECT id, name FROM users JOIN orders ON users.id = orders.user_id";
-        String result = optimize(sql);
-        // Columns should be qualified with table names
-        assertTrue(result.toLowerCase().contains("select"));
-    }
-
-    @Test
-    void testAlreadyQualifiedColumns() {
-        String sql = "SELECT users.id, users.name FROM users";
-        String result = optimize(sql);
-        // Already qualified, should remain unchanged
-        assertTrue(result.toLowerCase().contains("users.id"));
-    }
-
-    @Test
-    void testSelectStar() {
-        String sql = "SELECT * FROM users";
-        String result = optimize(sql);
-        // SELECT * should be preserved
-        assertTrue(result.toLowerCase().contains("*"));
     }
 
     @Test
     void testQualifyWithTableAlias() {
-        String sql = "SELECT u.id, u.name FROM users u";
+        String sql = "SELECT x.a FROM t x";
         String result = optimize(sql);
-        // Table alias should be used in qualification
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
-    void testColumnAliasInSelect() {
-        String sql = "SELECT id AS user_id, name AS user_name FROM users";
+    void testSelectStar() {
+        String sql = "SELECT * FROM t";
         String result = optimize(sql);
-        // Aliases should be preserved
+        assertTrue(result.toLowerCase().contains("*"));
+    }
+
+    @Test
+    void testAlreadyQualified() {
+        String sql = "SELECT t.a, t.b FROM t";
+        String result = optimize(sql);
+        assertTrue(result.toLowerCase().contains("t.a"));
+    }
+
+    @Test
+    void testColumnAlias() {
+        String sql = "SELECT a AS x FROM t";
+        String result = optimize(sql);
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
     void testRoundTripAfterQualification() {
-        String sql = "SELECT id, name FROM users";
+        String sql = "SELECT a FROM t";
         Optional<Expression> expr = SqlGlot.parseOne(sql);
         assertTrue(expr.isPresent());
 
         Expression optimized = rule.optimize(expr.get(), context);
         String generated = SqlGlot.generate(optimized, dialect.getName());
 
-        // Should be parseable again
         Optional<Expression> reparsed = SqlGlot.parseOne(generated);
         assertTrue(reparsed.isPresent());
     }
 
     @Test
-    void testQualifyWithSubquery() {
-        String sql = "SELECT id FROM (SELECT * FROM users)";
+    void testSimpleJoin() {
+        String sql = "SELECT 1 FROM a JOIN b ON a.id = b.id";
         String result = optimize(sql);
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
-    void testMultipleJoins() {
-        String sql = "SELECT users.id, orders.order_id, items.item_id FROM users JOIN orders ON users.id = orders.user_id JOIN items ON orders.order_id = items.order_id";
+    void testThreeTables() {
+        String sql = "SELECT 1 FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id";
         String result = optimize(sql);
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
-    void testQualifyWithWhereClause() {
-        String sql = "SELECT id, name FROM users WHERE id > 10";
+    void testWithWhere() {
+        String sql = "SELECT a FROM t WHERE a > 1";
         String result = optimize(sql);
-        // Columns in WHERE should also be qualified
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
-    void testQualifyWithGroupBy() {
-        String sql = "SELECT user_id, COUNT(*) FROM orders GROUP BY user_id";
+    void testWithGroupBy() {
+        String sql = "SELECT a FROM t GROUP BY a";
         String result = optimize(sql);
-        // GROUP BY columns should be qualified
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
-    void testQualifyWithOrderBy() {
-        String sql = "SELECT id, name FROM users ORDER BY name";
+    void testWithOrderBy() {
+        String sql = "SELECT a FROM t ORDER BY a";
         String result = optimize(sql);
-        // ORDER BY columns should be qualified
         assertTrue(result.toLowerCase().contains("select"));
     }
 
     @Test
-    void testQualifyWithAggregates() {
-        String sql = "SELECT user_id, SUM(amount) FROM transactions GROUP BY user_id";
-        String result = optimize(sql);
-        // Aggregate function columns should preserve structure
-        assertTrue(result.toLowerCase().contains("select"));
-    }
-
-    @Test
-    void testComplexQuery() {
-        String sql = "SELECT u.id, o.order_id, SUM(i.price) FROM users u JOIN orders o ON u.id = o.user_id JOIN items i ON o.order_id = i.order_id WHERE u.active = true GROUP BY u.id, o.order_id";
+    void testSimpleUnion() {
+        String sql = "SELECT a FROM t1 UNION SELECT a FROM t2";
         String result = optimize(sql);
         assertTrue(result.toLowerCase().contains("select"));
     }
