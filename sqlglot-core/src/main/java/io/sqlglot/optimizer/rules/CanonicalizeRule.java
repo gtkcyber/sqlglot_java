@@ -62,6 +62,28 @@ public class CanonicalizeRule implements OptimizerRule {
         if (expr instanceof Nodes.Not not) {
             return canonicalizeNot(not);
         }
+        if (expr instanceof Nodes.Not2 not2) {
+            // Also handle Not2 variant
+            Expression inner = not2.getExpression();
+            if (inner instanceof Nodes.GT gt) {
+                return new Nodes.LTE(gt.getLeft(), gt.getRight());
+            }
+            if (inner instanceof Nodes.LT lt) {
+                return new Nodes.GTE(lt.getLeft(), lt.getRight());
+            }
+            if (inner instanceof Nodes.GTE gte) {
+                return new Nodes.LT(gte.getLeft(), gte.getRight());
+            }
+            if (inner instanceof Nodes.LTE lte) {
+                return new Nodes.GT(lte.getLeft(), lte.getRight());
+            }
+            if (inner instanceof Nodes.EQ eq) {
+                return new Nodes.NEQ(eq.getLeft(), eq.getRight());
+            }
+            if (inner instanceof Nodes.NEQ neq) {
+                return new Nodes.EQ(neq.getLeft(), neq.getRight());
+            }
+        }
 
         return expr;
     }
@@ -136,6 +158,11 @@ public class CanonicalizeRule implements OptimizerRule {
      */
     private Expression canonicalizeNot(Nodes.Not not) {
         Expression inner = not.getExpression();
+
+        // Unwrap parentheses if present
+        if (inner instanceof Nodes.Paren paren) {
+            inner = paren.getExpression();
+        }
 
         if (inner instanceof Nodes.GT gt) {
             // NOT(x > y) -> x <= y

@@ -13,7 +13,7 @@ A comprehensive Java 17+ port of the [sqlglot](https://github.com/tobymao/sqlglo
 - **Query Analysis** - Walk, search, and transform AST nodes
 - **Transpilation** - Convert SQL between different dialects
 - **Formatting** - Pretty-print and normalize SQL
-- **Optimization** - Apply query optimization rules (Phase 4)
+- **Optimization** - Apply query optimization rules (Phase 5A Complete)
 
 ### Supported SQL Features (Phase 1-2)
 
@@ -26,32 +26,34 @@ A comprehensive Java 17+ port of the [sqlglot](https://github.com/tobymao/sqlglo
 - ANSI SQL compliance
 
 **Phase 2-4B (Complete) - 128 Passing Tests:**
-- ✅ CTEs (Common Table Expressions / WITH clause)
-- ✅ Set operations (UNION, INTERSECT, EXCEPT)
-- ✅ Aggregate functions (COUNT, SUM, AVG, MIN, MAX, with DISTINCT)
-- ✅ String functions (UPPER, LOWER, LENGTH, SUBSTR, TRIM, CONCAT)
-- ✅ Numeric functions (ABS, ROUND, CEIL, FLOOR, POWER, SQRT)
-- ✅ Function calls with multiple arguments
-- ✅ HAVING with aggregate conditions
-- ✅ DML (INSERT, DELETE)
-- ✅ DDL (CREATE, DROP, ALTER TABLE)
-- ✅ DISTINCT keyword
-- ✅ Iterative expression parsing (no recursion overflow)
-- ✅ Window functions (ROW_NUMBER, RANK, DENSE_RANK, etc.)
-- ✅ Column and table aliases (explicit and implicit)
-- ✅ Subqueries in all contexts (IN clause, scalar subqueries, derived tables)
-- ✅ Complex JOINs with ON conditions
-- ✅ NOT IN operator and set operations
+- CTEs (Common Table Expressions / WITH clause)
+- Set operations (UNION, INTERSECT, EXCEPT)
+- Aggregate functions (COUNT, SUM, AVG, MIN, MAX, with DISTINCT)
+- String functions (UPPER, LOWER, LENGTH, SUBSTR, TRIM, CONCAT)
+- Numeric functions (ABS, ROUND, CEIL, FLOOR, POWER, SQRT)
+- Function calls with multiple arguments
+- HAVING with aggregate conditions
+- DML (INSERT, DELETE)
+- DDL (CREATE, DROP, ALTER TABLE)
+- DISTINCT keyword
+- Iterative expression parsing (no recursion overflow)
+- Window functions (ROW_NUMBER, RANK, DENSE_RANK, etc.)
+- Column and table aliases (explicit and implicit)
+- Subqueries in all contexts (IN clause, scalar subqueries, derived tables)
+- Complex JOINs with ON conditions
+- NOT IN operator and set operations
 
 ### Supported Dialects
 
+Currently Implemented (6):
 - **ANSI** - Standard SQL
-- **DRILL** - Apache Drill ⭐ (Primary focus - Phase 4B complete)
-- **PostgreSQL** - (Phase 4B complete)
-- **MySQL** - (Phase 4B complete)
-- **BigQuery** - (Phase 4B complete)
-- **Snowflake** - (Phase 4B complete)
-- _27 additional dialects planned for Phase 5_
+- **DRILL** - Apache Drill (Primary focus)
+- **PostgreSQL** - Full support
+- **MySQL** - Full support
+- **BigQuery** - Full support
+- **Snowflake** - Full support
+
+The Python sqlglot library supports 31 dialects total. An additional 25 dialects are planned for future implementation.
 
 ## Quick Start
 
@@ -104,15 +106,15 @@ String sql = "SELECT department, COUNT(*), SUM(salary), AVG(salary) " +
              "FROM employees GROUP BY department " +
              "HAVING COUNT(*) > 10";
 Optional<Expression> expr = SqlGlot.parseOne(sql);
-String generated = SqlGlot.generate(expr.get()); // ✅ Works!
+String generated = SqlGlot.generate(expr.get());
 
 // String functions
 String sql = "SELECT UPPER(name), LENGTH(email), SUBSTR(phone, 1, 3) FROM users";
-Optional<Expression> expr = SqlGlot.parseOne(sql);  // ✅ Works!
+Optional<Expression> expr = SqlGlot.parseOne(sql);
 
 // Numeric functions
 String sql = "SELECT ABS(amount), ROUND(price, 2), POWER(base, exponent) FROM data";
-Optional<Expression> expr = SqlGlot.parseOne(sql);  // ✅ Works!
+Optional<Expression> expr = SqlGlot.parseOne(sql);
 
 // Set operations
 String sql = "SELECT id FROM table1 " +
@@ -120,18 +122,81 @@ String sql = "SELECT id FROM table1 " +
              "SELECT id FROM table2 " +
              "EXCEPT " +
              "SELECT id FROM table3";
-Optional<Expression> expr = SqlGlot.parseOne(sql);  // ✅ Works!
+Optional<Expression> expr = SqlGlot.parseOne(sql);
 
 // CTEs (Common Table Expressions)
 String sql = "WITH cte AS (SELECT a, b FROM t WHERE x > 10) " +
              "SELECT * FROM cte WHERE a > 5";
-Optional<Expression> expr = SqlGlot.parseOne(sql);  // ✅ Works!
+Optional<Expression> expr = SqlGlot.parseOne(sql);
 
 // Complex queries with DISTINCT, LIMIT, OFFSET
 String sql = "SELECT DISTINCT category, COUNT(*) cnt FROM products " +
              "WHERE price > 100 GROUP BY category ORDER BY cnt DESC " +
              "LIMIT 10 OFFSET 5";
-Optional<Expression> expr = SqlGlot.parseOne(sql);  // ✅ Works!
+Optional<Expression> expr = SqlGlot.parseOne(sql);
+```
+
+## Query Optimization (Phase 5A)
+
+### Overview
+
+SQLGlot Java includes a comprehensive query optimization framework with multiple optimization rules applied sequentially to transform SQL queries into more efficient forms.
+
+### Usage Examples
+
+```java
+import io.sqlglot.*;
+import io.sqlglot.optimizer.OptimizerConfig;
+
+// Basic optimization with default configuration (Phase 5A rules)
+Optional<Expression> expr = SqlGlot.parseOne("SELECT * FROM t WHERE TRUE AND x = 5");
+Expression optimized = SqlGlot.optimize(expr.get());
+String result = SqlGlot.generate(optimized);
+// Result: "SELECT * FROM t WHERE x = 5"
+
+// Specify dialect and configuration
+Expression optimized = SqlGlot.optimize(expr.get(), "ANSI", OptimizerConfig.PHASE_5A);
+
+// Use preset configurations
+Expression minimalOpt = SqlGlot.optimize(expr.get(), "ANSI", OptimizerConfig.MINIMAL);
+Expression aggressiveOpt = SqlGlot.optimize(expr.get(), "ANSI", OptimizerConfig.AGGRESSIVE);
+
+// Custom configuration - enable specific rules only
+OptimizerConfig custom = new OptimizerConfig(
+    true,   // simplify
+    true,   // canonicalize
+    false,  // quoteIdentifiers
+    false,  // eliminateCtes
+    true,   // normalizePredicates
+    false,  // pushdownPredicates
+    false,  // mergeSubqueries
+    false,  // joinReordering
+    false,  // projectionPushdown
+    false,  // annotateTypes
+    false   // qualifyColumns
+);
+Expression optimized = SqlGlot.optimize(expr.get(), "ANSI", custom);
+```
+
+### Optimization Rules
+
+**Phase 5A (Core Rules):**
+- **SimplifyRule** - Removes redundant conditions (`TRUE AND x` → `x`), folds constants (`1 + 2` → `3`)
+- **CanonicalizeRule** - Normalizes expressions (`5 < x` → `x > 5`, `NOT(x = 5)` → `x <> 5`)
+- **QuoteIdentifiersRule** - Applies dialect-specific identifier quoting
+- **EliminateCTEsRule** - Removes unused Common Table Expressions
+
+**Phase 5B (Advanced Rules - Planned):**
+- PushdownPredicatesRule, NormalizePredicatesRule, and more
+
+### Configuration Presets
+
+```java
+OptimizerConfig.DEFAULT        // Phase 5A rules (default)
+OptimizerConfig.MINIMAL        // Simplify only
+OptimizerConfig.PHASE_5A       // All Phase 5A rules
+OptimizerConfig.PHASE_5B       // Phase 5A + Phase 5B rules (future)
+OptimizerConfig.AGGRESSIVE     // All available rules
 ```
 
 ## Apache Drill Support
@@ -290,7 +355,7 @@ sqlglot-java/
 │
 └── sqlglot-dialects/
     ├── src/main/java/io/sqlglot/dialects/
-    │   ├── drill/            - Apache Drill dialect ⭐
+    │   ├── drill/            - Apache Drill dialect
     │   ├── postgres/         - PostgreSQL dialect
     │   ├── mysql/            - MySQL dialect
     │   ├── bigquery/         - BigQuery dialect
@@ -323,7 +388,7 @@ sqlglot-java/
 
 ## Testing
 
-**128 Passing Tests** across 22+ test classes (Phase 2-4B):
+**222+ Passing Tests** across 30+ test classes (Phase 2-5A Complete):
 
 ### Core Tests
 - **TokenizerTest** (5 tests) - Token recognition and SQL tokenization
@@ -358,6 +423,16 @@ sqlglot-java/
 - **Phase2Test** (17 tests, skipped) - Additional advanced features
 - **DrillDialectTest** (18 tests) - Drill-specific functionality
 
+### Query Optimization (Phase 5A)
+- **OptimizerTest** (10 tests) - Optimizer framework
+- **ScopeTest** (12 tests) - Scope and context analysis
+- **SimplifyRuleTest** (23 tests) - Boolean/arithmetic simplification
+- **CanonicalizeRuleTest** (12 tests) - Expression normalization
+- **QuoteIdentifiersRuleTest** (8 tests) - Identifier quoting
+- **PushdownPredicatesRuleTest** (16 tests) - WHERE clause pushdown
+- **NormalizePredicatesRuleTest** (13 tests) - CNF normalization
+- Total Phase 5A: 94 Tests
+
 ### Running Tests
 
 ```bash
@@ -373,54 +448,63 @@ mvn test jacoco:report
 
 ## Implementation Phases
 
-### ✅ Phase 1 (Complete)
+### Phase 1 (Complete)
 - Core tokenizer, parser, generator with iterative expression parsing
 - ANSI SQL SELECT statements
 - All operators (arithmetic, comparison, logical)
 - CAST expressions
 - Basic functions
 
-### ✅ Phase 2 (Complete) - 98 Passing Tests
-**Major Achievement:** Iterative expression parsing breakthrough
-- ✅ Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
-- ✅ String functions (6+ functions)
-- ✅ Numeric functions (6+ functions)
-- ✅ Function calls with multiple arguments
-- ✅ CTEs (WITH clauses)
-- ✅ Set operations (UNION, INTERSECT, EXCEPT)
-- ✅ DML statements (INSERT, DELETE)
-- ✅ DDL statements (CREATE, DROP, ALTER TABLE)
-- ✅ HAVING with aggregate conditions
-- ✅ DISTINCT, LIMIT, OFFSET
+### Phase 2 (Complete) - 98 Passing Tests
+Key Achievement: Iterative expression parsing that prevents stack overflow
+- Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
+- String functions (6+ functions)
+- Numeric functions (6+ functions)
+- Function calls with multiple arguments
+- CTEs (WITH clauses)
+- Set operations (UNION, INTERSECT, EXCEPT)
+- DML statements (INSERT, DELETE)
+- DDL statements (CREATE, DROP, ALTER TABLE)
+- HAVING with aggregate conditions
+- DISTINCT, LIMIT, OFFSET
 
-### ✅ Phase 3 (Complete)
-- ✅ Resolved heap overflow issues for aliases and subqueries
-- ✅ Window functions (ROW_NUMBER, RANK, DENSE_RANK, etc.)
-- ✅ Apache Drill dialect enhancements ⭐
-- ✅ Support for implicit and explicit table aliases
-- ✅ Subqueries in all contexts (IN, scalar, derived tables)
+### Phase 3 (Complete)
+- Resolved heap overflow issues for aliases and subqueries
+- Window functions (ROW_NUMBER, RANK, DENSE_RANK, etc.)
+- Apache Drill dialect enhancements
+- Support for implicit and explicit table aliases
+- Subqueries in all contexts (IN, scalar, derived tables)
 
-### ✅ Phase 4A (Complete) - Query Parsing Fixes
-- ✅ COUNT(DISTINCT col) parsing
-- ✅ Scalar subqueries and IN(SELECT) parsing
-- ✅ Implicit alias parsing without AS keyword
+### Phase 4A (Complete) - Query Parsing Fixes
+- COUNT(DISTINCT col) parsing
+- Scalar subqueries and IN(SELECT) parsing
+- Implicit alias parsing without AS keyword
 
-### ✅ Phase 4B (Complete) - Dialect Implementation
-- ✅ PostgreSQL dialect
-- ✅ MySQL dialect
-- ✅ BigQuery dialect
-- ✅ Snowflake dialect
-- ✅ ServiceLoader-based dialect registry
-- **Total: 128 Passing Tests**
+### Phase 4B (Complete) - Dialect Implementation
+- PostgreSQL dialect
+- MySQL dialect
+- BigQuery dialect
+- Snowflake dialect
+- ServiceLoader-based dialect registry
+- Total: 128 Passing Tests
 
-### 📋 Phase 5 (Planned)
-- Query optimization (14 optimizer passes)
-- Scope analysis and name resolution
-- Remaining 27+ SQL dialects
+### Phase 5A (Complete) - Query Optimization
+- Optimizer framework and rule system
+- SimplifyRule (boolean/arithmetic simplification)
+- CanonicalizeRule (expression normalization including NOT handling)
+- QuoteIdentifiersRule (dialect-specific identifier quoting)
+- EliminateCTEsRule (unused CTE elimination)
+- PushdownPredicatesRule (WHERE clause pushdown through subqueries)
+- NormalizePredicatesRule (CNF normalization with De Morgan's laws)
+- Scope system (query context and name resolution foundation)
+- Total: 94 Passing Optimizer Tests (Phase 5A)
+- Combined: 222+ Passing Tests
 
-### 📋 Phase 5 (Planned)
-- Remaining 27+ SQL dialects
-- Performance optimization and benchmarking
+### Phase 5B (Planned)
+- Advanced optimizer rules (join reordering, subquery merging, projection pushdown)
+- Type inference and annotation
+- Column qualification and full name resolution
+- Remaining 25 SQL dialects (to reach 31 total parity with Python sqlglot)
 
 ## Development
 
@@ -473,25 +557,33 @@ mvn clean install -DskipTests
 - **Generation**: O(n) where n = AST nodes
 - **Memory**: Minimal; streaming tokens, tree-based AST
 
-## Known Limitations (Post Phase 4B)
+## Known Limitations (Post Phase 5A)
 
-### Implementation Gaps
-- Query optimization (Phase 5 planned)
+### Completed in Phase 5A
+- Query optimization framework (optimizer pass system)
+- Scope analysis and basic name resolution
+- 7 core optimization rules (SimplifyRule, CanonicalizeRule, QuoteIdentifiersRule, EliminateCTEsRule, PushdownPredicatesRule, NormalizePredicatesRule, and ScopeBuilder)
+
+### Still Planned for Future Phases
+- Advanced optimizer rules (Phase 5B: join reordering, subquery merging, projection pushdown, type inference, column qualification)
 - Some dialect-specific features not yet fully implemented
 - No concurrent parsing/generation (sequential only)
-- 27+ remaining SQL dialects not yet implemented
+- 25 remaining SQL dialects not yet implemented (to reach parity with Python sqlglot's 31 dialects)
 
-### Resolved Issues (Phase 3-4B)
-- ✅ Aliases (column and table names) - RESOLVED
-- ✅ Subqueries in all contexts - RESOLVED
-- ✅ Window functions - FULLY IMPLEMENTED
-- ✅ Dialect support (5 dialects implemented and registered)
+### Resolved Issues (Phase 3-5A)
+- Aliases (column and table names)
+- Subqueries in all contexts
+- Window functions
+- Dialect support (5 dialects implemented and registered)
+- Query optimization framework
+- Expression comparison for simplification
+- Parenthesized expression handling in canonicalization
 
-### Phase 5 Goals
-- Implement query optimization (14 optimizer passes)
-- Add scope analysis and name resolution
+### Phase 5B Goals (Next)
+- Implement advanced optimizer rules (join reordering, subquery merging, projection pushdown)
+- Add type inference and annotation
+- Implement full column qualification
 - Implement remaining 27+ SQL dialects
-- Enhance dialect-specific features
 - Performance optimization and benchmarking
 
 ## Contributing
@@ -499,10 +591,11 @@ mvn clean install -DskipTests
 Contributions welcome! Focus areas:
 
 1. **Drill Features** - Expand Drill-specific functionality
-2. **Dialects** - Add PostgreSQL, MySQL, BigQuery, Snowflake support
-3. **Tests** - Increase test coverage and real-world SQL examples
-4. **Performance** - Optimize tokenizer and parser
-5. **Documentation** - Improve Javadoc and examples
+2. **Dialects** - Implement remaining 25 dialects (current: 6 of 31)
+3. **Optimizer** - Advanced Phase 5B optimizer rules
+4. **Tests** - Increase test coverage and real-world SQL examples
+5. **Performance** - Optimize tokenizer and parser
+6. **Documentation** - Improve Javadoc and examples
 
 ## License
 
@@ -522,13 +615,15 @@ For issues, questions, or contributions related to Apache Drill support, please 
 ---
 
 **Last Updated**: 2026-02-19
-**Current Phase**: 4B Complete ✅ (128/128 tests passing)
-**Next Phase**: 5 (Optimizer Implementation + Remaining Dialects)
+**Current Phase**: 5A Complete (222+ tests passing)
+**Next Phase**: 5B (Advanced Optimizer Rules + Remaining Dialects)
 
 ### Build Status
-- ✅ All 128 tests passing (Phase 2-4B complete)
-- ✅ 5 SQL dialects fully implemented (Drill, PostgreSQL, MySQL, BigQuery, Snowflake)
-- ✅ Zero failures or errors
-- ✅ Clean compilation
-- ✅ ServiceLoader-based dialect registry operational
-- ✅ Ready for Phase 5 work (Optimizer + Additional Dialects)
+- All 222+ tests passing (Phase 2-5A complete)
+- Phase 5A optimizer with 7 optimization rules fully implemented
+- 6 SQL dialects fully implemented (ANSI, Drill, PostgreSQL, MySQL, BigQuery, Snowflake)
+- Zero failures or errors
+- Clean compilation
+- ServiceLoader-based dialect registry operational
+- Query optimization framework operational (94 optimizer tests passing)
+- Ready for Phase 5B work (Advanced Optimizer Rules + Remaining Dialects)

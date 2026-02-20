@@ -26,6 +26,8 @@ package io.sqlglot.optimizer.util;
 import io.sqlglot.expressions.Expression;
 import io.sqlglot.expressions.Nodes;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -117,7 +119,44 @@ public class ExpressionUtils {
         if (isFalse(e1) && isFalse(e2)) return true;
         if (isNull(e1) && isNull(e2)) return true;
 
-        return e1.equals(e2);
+        // Compare by structure: compare all arguments recursively
+        Map<String, Object> args1 = e1.args();
+        Map<String, Object> args2 = e2.args();
+
+        if (!args1.keySet().equals(args2.keySet())) return false;
+
+        for (String key : args1.keySet()) {
+            Object val1 = args1.get(key);
+            Object val2 = args2.get(key);
+
+            if (!argsEqual(val1, val2)) return false;
+        }
+
+        return true;
+    }
+
+    private static boolean argsEqual(Object val1, Object val2) {
+        if (val1 == val2) return true;
+        if (val1 == null || val2 == null) return false;
+
+        // Recursively compare Expression arguments
+        if (val1 instanceof Expression && val2 instanceof Expression) {
+            return expressionsEqual((Expression) val1, (Expression) val2);
+        }
+
+        // Compare lists of expressions
+        if (val1 instanceof List && val2 instanceof List) {
+            List<?> list1 = (List<?>) val1;
+            List<?> list2 = (List<?>) val2;
+            if (list1.size() != list2.size()) return false;
+            for (int i = 0; i < list1.size(); i++) {
+                if (!argsEqual(list1.get(i), list2.get(i))) return false;
+            }
+            return true;
+        }
+
+        // Default comparison
+        return val1.equals(val2);
     }
 
     /**
