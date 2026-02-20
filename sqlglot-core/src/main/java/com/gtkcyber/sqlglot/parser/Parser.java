@@ -98,8 +98,12 @@ public class Parser {
             case ALTER -> parseAlter();
             case WITH -> parseWith();
             default -> {
-                error("Unexpected token: " + type);
-                yield Optional.empty();
+                String message = "Unexpected token: " + type;
+                if (config.errorLevel() == ErrorLevel.IMMEDIATE) {
+                    throw new ParseException(message);
+                }
+                errors.add(new ParseError(message, currentToken().line(), currentToken().col(), ""));
+                throw new ParseException(message);
             }
         };
     }
@@ -168,6 +172,13 @@ public class Parser {
         }
 
         List<Nodes.Join> joins = new ArrayList<>();
+
+        // Handle comma-separated tables (equivalent to CROSS JOIN)
+        while (match(TokenType.COMMA)) {
+            Expression right = parseTableReference();
+            joins.add(new Nodes.Join("CROSS", right, null));
+        }
+
         while (matchJoin()) {
             joins.add(parseJoin());
         }
@@ -257,6 +268,11 @@ public class Parser {
     private Expression parseTableReference() {
         Expression expr = parsePrimary();
 
+        // Convert bare identifiers to Table nodes for table references
+        if (expr instanceof Nodes.Identifier identifier) {
+            expr = new Nodes.Table(identifier.getName());
+        }
+
         if (match(TokenType.AS)) {
             String alias = parseAliasName();
             expr = new Nodes.Alias(expr, alias);
@@ -295,9 +311,9 @@ public class Parser {
                nextType == TokenType.INNER || nextType == TokenType.LEFT ||
                nextType == TokenType.RIGHT || nextType == TokenType.FULL ||
                nextType == TokenType.CROSS || nextType == TokenType.COMMA ||
-               nextType == TokenType.R_PAREN || nextType == TokenType.EOF ||
-               nextType == TokenType.UNION || nextType == TokenType.INTERSECT ||
-               nextType == TokenType.EXCEPT;
+               nextType == TokenType.ON || nextType == TokenType.R_PAREN ||
+               nextType == TokenType.EOF || nextType == TokenType.UNION ||
+               nextType == TokenType.INTERSECT || nextType == TokenType.EXCEPT;
     }
 
     /**

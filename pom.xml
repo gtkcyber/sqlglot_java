@@ -65,6 +65,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.1.2</version>
+                    <configuration>
+                        <argLine>-Xmx2048m -Xms512m</argLine>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>com.mycila</groupId>

@@ -129,7 +129,8 @@ public class ScopeBuilder {
             String tableName = table.getName();
             String sourceAlias = tableName;
 
-            if (sourceAlias != null) {
+            // Only add as TableSource if not already defined (e.g., as a CTE)
+            if (sourceAlias != null && !scope.getSource(sourceAlias).isPresent()) {
                 Source source = new Source.TableSource(sourceAlias, tableName);
                 scope.addSource(sourceAlias, source);
             }
@@ -149,6 +150,10 @@ public class ScopeBuilder {
                 Source source = new Source.ScopeSource(aliasName, subqueryScope);
                 scope.addSource(aliasName, source);
                 scope.addChild(subqueryScope);
+            } else if (aliasedExpr instanceof Nodes.Table table) {
+                // Table with explicit alias
+                Source source = new Source.TableSource(aliasName, table.getName());
+                scope.addSource(aliasName, source);
             } else {
                 extractTableSource(aliasedExpr, scope);
             }
