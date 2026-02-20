@@ -13,6 +13,7 @@
     </parent>
 
     <artifactId>sqlglot-core</artifactId>
+    <packaging>jar</packaging>
     <name>SQLGlot Core</name>
     <description>Core SQL parsing, generation, and optimization</description>
 

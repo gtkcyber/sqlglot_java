@@ -13,6 +13,7 @@
     </parent>
 
     <artifactId>sqlglot-dialects</artifactId>
+    <packaging>jar</packaging>
     <name>SQLGlot Dialects</name>
     <description>SQL dialect implementations (PostgreSQL, MySQL, BigQuery, Snowflake, etc.)</description>
 
