@@ -1,5 +1,6 @@
 # SQLGlot Java - SQL Parsing and Generation Library
 
+[![CodeQL Advanced](https://github.com/gtkcyber/sqlglot_java/actions/workflows/codeql.yml/badge.svg)](https://github.com/gtkcyber/sqlglot_java/actions/workflows/codeql.yml)
 A comprehensive Java 17+ port of the [sqlglot](https://github.com/tobymao/sqlglot) Python library, providing SQL parsing, generation, validation, and transpilation across multiple SQL dialects.
 
 **Special Focus:** Apache Drill support for distributed SQL query execution across heterogeneous data sources.
