@@ -28,6 +28,20 @@ import io.sqlglot.generator.Generator;
 import io.sqlglot.generator.GeneratorConfig;
 import io.sqlglot.parser.Parser;
 import io.sqlglot.tokens.Tokenizer;
+import io.sqlglot.optimizer.Optimizer;
+import io.sqlglot.optimizer.OptimizerConfig;
+import io.sqlglot.optimizer.OptimizerContext;
+import io.sqlglot.optimizer.rules.SimplifyRule;
+import io.sqlglot.optimizer.rules.CanonicalizeRule;
+import io.sqlglot.optimizer.rules.QuoteIdentifiersRule;
+import io.sqlglot.optimizer.rules.EliminateCTEsRule;
+import io.sqlglot.optimizer.rules.PushdownPredicatesRule;
+import io.sqlglot.optimizer.rules.NormalizePredicatesRule;
+import io.sqlglot.optimizer.rules.MergeSubqueriesRule;
+import io.sqlglot.optimizer.rules.JoinReorderingRule;
+import io.sqlglot.optimizer.rules.ProjectionPushdownRule;
+import io.sqlglot.optimizer.rules.AnnotateTypesRule;
+import io.sqlglot.optimizer.rules.QualifyColumnsRule;
 
 import java.util.List;
 import java.util.Objects;
@@ -120,6 +134,73 @@ public abstract class Dialect {
         }
         GeneratorConfig config = new GeneratorConfig(true, false, true, 0);
         return generate(expr.get(), config);
+    }
+
+    /**
+     * Optimizes an expression using this dialect with default configuration.
+     */
+    public Expression optimize(Expression expr) {
+        return optimize(expr, OptimizerConfig.DEFAULT);
+    }
+
+    /**
+     * Optimizes an expression using this dialect with custom configuration.
+     */
+    public Expression optimize(Expression expr, OptimizerConfig config) {
+        OptimizerContext context = OptimizerContext.of(this, config);
+        Optimizer optimizer = new Optimizer(context);
+
+        // Phase 5A rules
+        if (config.simplify()) {
+            optimizer.addRule(new SimplifyRule());
+        }
+        if (config.canonicalize()) {
+            optimizer.addRule(new CanonicalizeRule());
+        }
+        if (config.quoteIdentifiers()) {
+            optimizer.addRule(new QuoteIdentifiersRule());
+        }
+        if (config.eliminateCtes()) {
+            optimizer.addRule(new EliminateCTEsRule());
+        }
+
+        // Phase 5B rules (advanced optimizations)
+        if (config.normalizePredicates()) {
+            optimizer.addRule(new NormalizePredicatesRule());
+        }
+        if (config.pushdownPredicates()) {
+            optimizer.addRule(new PushdownPredicatesRule());
+        }
+        if (config.mergeSubqueries()) {
+            optimizer.addRule(new MergeSubqueriesRule());
+        }
+        if (config.joinReordering()) {
+            optimizer.addRule(new JoinReorderingRule());
+        }
+        if (config.projectionPushdown()) {
+            optimizer.addRule(new ProjectionPushdownRule());
+        }
+        if (config.annotateTypes()) {
+            optimizer.addRule(new AnnotateTypesRule());
+        }
+        if (config.qualifyColumns()) {
+            optimizer.addRule(new QualifyColumnsRule());
+        }
+
+        return optimizer.optimize(expr);
+    }
+
+    /**
+     * Formats and optimizes SQL in one pass.
+     */
+    public String formatWithOptimization(String sql) {
+        Optional<Expression> expr = parseOne(sql);
+        if (expr.isEmpty()) {
+            return "";
+        }
+        Expression optimized = optimize(expr.get());
+        GeneratorConfig config = new GeneratorConfig(true, false, true, 0);
+        return generate(optimized, config);
     }
 
     /**

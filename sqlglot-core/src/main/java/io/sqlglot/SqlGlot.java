@@ -27,6 +27,20 @@ import io.sqlglot.dialect.Dialect;
 import io.sqlglot.dialect.DialectRegistry;
 import io.sqlglot.expressions.Expression;
 import io.sqlglot.generator.GeneratorConfig;
+import io.sqlglot.optimizer.Optimizer;
+import io.sqlglot.optimizer.OptimizerConfig;
+import io.sqlglot.optimizer.OptimizerContext;
+import io.sqlglot.optimizer.rules.SimplifyRule;
+import io.sqlglot.optimizer.rules.CanonicalizeRule;
+import io.sqlglot.optimizer.rules.QuoteIdentifiersRule;
+import io.sqlglot.optimizer.rules.EliminateCTEsRule;
+import io.sqlglot.optimizer.rules.PushdownPredicatesRule;
+import io.sqlglot.optimizer.rules.NormalizePredicatesRule;
+import io.sqlglot.optimizer.rules.MergeSubqueriesRule;
+import io.sqlglot.optimizer.rules.JoinReorderingRule;
+import io.sqlglot.optimizer.rules.ProjectionPushdownRule;
+import io.sqlglot.optimizer.rules.AnnotateTypesRule;
+import io.sqlglot.optimizer.rules.QualifyColumnsRule;
 
 import java.util.List;
 import java.util.Optional;
@@ -144,5 +158,89 @@ public final class SqlGlot {
      */
     public static void registerDialect(Dialect dialect) {
         DialectRegistry.getInstance().registerDialect(dialect);
+    }
+
+    /**
+     * Optimizes an expression using ANSI dialect with default configuration.
+     */
+    public static Expression optimize(Expression expr) {
+        return optimize(expr, "ANSI", OptimizerConfig.DEFAULT);
+    }
+
+    /**
+     * Optimizes an expression using specified dialect with default configuration.
+     */
+    public static Expression optimize(Expression expr, String dialect) {
+        return optimize(expr, dialect, OptimizerConfig.DEFAULT);
+    }
+
+    /**
+     * Optimizes an expression using specified dialect and custom configuration.
+     */
+    public static Expression optimize(Expression expr, String dialect, OptimizerConfig config) {
+        Dialect d = getDialect(dialect);
+        OptimizerContext context = OptimizerContext.of(d, config);
+        Optimizer optimizer = new Optimizer(context);
+
+        // Phase 5A rules
+        if (config.simplify()) {
+            optimizer.addRule(new SimplifyRule());
+        }
+        if (config.canonicalize()) {
+            optimizer.addRule(new CanonicalizeRule());
+        }
+        if (config.quoteIdentifiers()) {
+            optimizer.addRule(new QuoteIdentifiersRule());
+        }
+        if (config.eliminateCtes()) {
+            optimizer.addRule(new EliminateCTEsRule());
+        }
+
+        // Phase 5B rules (advanced optimizations)
+        if (config.normalizePredicates()) {
+            optimizer.addRule(new NormalizePredicatesRule());
+        }
+        if (config.pushdownPredicates()) {
+            optimizer.addRule(new PushdownPredicatesRule());
+        }
+        if (config.mergeSubqueries()) {
+            optimizer.addRule(new MergeSubqueriesRule());
+        }
+        if (config.joinReordering()) {
+            optimizer.addRule(new JoinReorderingRule());
+        }
+        if (config.projectionPushdown()) {
+            optimizer.addRule(new ProjectionPushdownRule());
+        }
+        if (config.annotateTypes()) {
+            optimizer.addRule(new AnnotateTypesRule());
+        }
+        if (config.qualifyColumns()) {
+            optimizer.addRule(new QualifyColumnsRule());
+        }
+
+        return optimizer.optimize(expr);
+    }
+
+    /**
+     * Parses and optimizes SQL with ANSI dialect and default configuration.
+     */
+    public static Optional<Expression> parseAndOptimize(String sql) {
+        return parseAndOptimize(sql, "ANSI", OptimizerConfig.DEFAULT);
+    }
+
+    /**
+     * Parses and optimizes SQL with specified dialect and default configuration.
+     */
+    public static Optional<Expression> parseAndOptimize(String sql, String dialect) {
+        return parseAndOptimize(sql, dialect, OptimizerConfig.DEFAULT);
+    }
+
+    /**
+     * Parses and optimizes SQL with specified dialect and custom configuration.
+     */
+    public static Optional<Expression> parseAndOptimize(String sql, String dialect, OptimizerConfig config) {
+        Optional<Expression> expr = parseOne(sql, dialect);
+        return expr.map(e -> optimize(e, dialect, config));
     }
 }
