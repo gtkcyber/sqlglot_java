@@ -1,0 +1,5 @@
+com.gtkcyber.sqlglot.dialects.drill.DrillDialect
+com.gtkcyber.sqlglot.dialects.postgres.PostgreSQLDialect
+com.gtkcyber.sqlglot.dialects.mysql.MySQLDialect
+com.gtkcyber.sqlglot.dialects.bigquery.BigQueryDialect
+com.gtkcyber.sqlglot.dialects.snowflake.SnowflakeDialect
