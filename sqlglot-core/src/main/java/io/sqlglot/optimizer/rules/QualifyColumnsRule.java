@@ -106,7 +106,7 @@ public class QualifyColumnsRule implements OptimizerRule {
         if (matchingTables.size() == 1) {
             String tableName = matchingTables.get(0);
             Expression newTable = new Nodes.Identifier(tableName, false);
-            return new Nodes.Column(col.getName(), newTable);
+            return new Nodes.Column(newTable, col.getName());
         }
 
         // Multiple matches or not found - return as-is (ambiguous or error)
