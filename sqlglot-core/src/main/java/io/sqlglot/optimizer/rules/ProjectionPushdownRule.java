@@ -147,14 +147,14 @@ public class ProjectionPushdownRule implements OptimizerRule {
         Set<String> columns = new HashSet<>();
 
         // Walk the expression tree and collect column references
-        expr.transform(e -> {
-            if (e instanceof Nodes.Column col) {
-                Expression nameExpr = col.getName();
-                if (nameExpr instanceof Nodes.Literal literal) {
-                    columns.add(literal.getValue());
-                }
+        // Note: Use findAll instead of transform to avoid nested traversal within the transform callback
+        expr.findAll(Nodes.Column.class).forEach(col -> {
+            Expression nameExpr = col.getName();
+            if (nameExpr instanceof Nodes.Literal literal) {
+                columns.add(literal.getValue());
+            } else {
+                columns.add(nameExpr.toString());
             }
-            return e;
         });
 
         return columns;

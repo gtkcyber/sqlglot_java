@@ -157,38 +157,18 @@ public class AnnotateTypesRule implements OptimizerRule {
      * Infers type of an arithmetic operation.
      */
     private TypeContext inferArithmeticType(Nodes.Binary op) {
-        // Get operand types
-        Expression left = op.getLeft();
-        Expression right = op.getRight();
-
-        TypeContext leftType = inferExpressionType(left);
-        TypeContext rightType = inferExpressionType(right);
-
         // Arithmetic operations produce numeric results
-        boolean isNullable = leftType.isNullable || rightType.isNullable;
-        return new TypeContext(SqlType.NUMERIC, isNullable);
+        // Note: Children are already processed by transform(), so we don't need to infer child types
+        return new TypeContext(SqlType.NUMERIC, true);
     }
 
     /**
      * Infers type of a comparison operation.
      */
     private TypeContext inferComparisonType(Nodes.Binary op) {
-        // Get operand types
-        Expression left = op.getLeft();
-        Expression right = op.getRight();
-
-        TypeContext leftType = inferExpressionType(left);
-        TypeContext rightType = inferExpressionType(right);
-
-        // Type checking: warn if incompatible types (string vs numeric)
-        if (isIncompatibleComparison(leftType, rightType)) {
-            // In a real implementation, could log a warning
-            // For now, we silently accept it (SQL is lenient with type coercion)
-        }
-
         // Comparison operations always produce boolean results
-        boolean isNullable = leftType.isNullable || rightType.isNullable;
-        return new TypeContext(SqlType.BOOLEAN, isNullable);
+        // Note: Children are already processed by transform(), so we don't need to infer child types
+        return new TypeContext(SqlType.BOOLEAN, true);
     }
 
     /**
