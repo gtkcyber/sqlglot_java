@@ -75,12 +75,12 @@ Add to your Maven `pom.xml`:
 <dependency>
     <groupId>com.gtkcyber.sqlglot</groupId>
     <artifactId>sqlglot-core</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 <dependency>
     <groupId>com.gtkcyber.sqlglot</groupId>
     <artifactId>sqlglot-dialects</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
