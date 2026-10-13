@@ -565,3 +565,8 @@ For issues, questions, or contributions related to Apache Drill support, please 
 - Zero failures or errors
 - Clean compilation
 - Production-ready code quality
+
+
+---
+
+Built by [GTK Cyber](https://gtkcyber.com), hands-on AI and data science training for security teams.
